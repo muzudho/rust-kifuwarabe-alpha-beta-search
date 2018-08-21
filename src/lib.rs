@@ -24,12 +24,19 @@ fn empty_pick_movements_callback(_max_depth: i16, _cur_depth: i16) -> HashSet<u6
 
 /// 指し手の比較。
 ///
+/// # Arguments.
+///
 /// * `_best_movement` - ベストな指し手。
 /// * `_alpha` - alpha。より良い手があれば増える。
 /// * `_beta` - beta。
 /// * `_movement` - 今回比較する指し手。
 /// * `_child_evaluation` - 今回比較する指し手の評価値。
-fn empty_compare_best_callback(_best_movement: &mut Movement, _alpha: &mut i16, _beta: i16, _movement: Movement, _child_evaluation: i16) {
+///
+/// # Returns.
+///
+/// 探索を打ち切るなら真。
+fn empty_compare_best_callback(_best_movement: &mut Movement, _alpha: &mut i16, _beta: i16, _movement: Movement, _child_evaluation: i16) -> bool {
+    false
 }
 
 /// 探索オブジェクト。思考開始時に作成して使う。
@@ -46,7 +53,9 @@ pub struct Searcher{
     /// 3. beta。
     /// 4. 今回比較する指し手。
     /// 5. 今回比較する指し手の評価値。
-    pub compare_best_callback: fn(&mut Movement, &mut i16, i16, Movement, i16),
+    ///
+    /// 探索を打ち切るなら真。
+    pub compare_best_callback: fn(&mut Movement, &mut i16, i16, Movement, i16) -> bool,
 }
 
 impl Searcher{
@@ -96,7 +105,11 @@ impl Searcher{
             child_evaluation = -child_evaluation;
 
             // 比較して、一番良い手を選ぶ。
-            (self.compare_best_callback)(&mut best_movement, &mut alpha, beta, movement, child_evaluation);
+            if (self.compare_best_callback)(&mut best_movement, &mut alpha, beta, movement, child_evaluation)
+            {
+                // 探索を打ち切る。
+                break;
+            }
 
             // 1手戻す。
             {
