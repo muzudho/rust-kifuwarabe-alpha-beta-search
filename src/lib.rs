@@ -105,15 +105,21 @@ impl Searcher{
             child_evaluation = -child_evaluation;
 
             // 比較して、一番良い手を選ぶ。
+            let mut cutoff = false;
             if (self.compare_best_callback)(&mut best_movement, &mut alpha, beta, movement, child_evaluation)
             {
-                // 探索を打ち切る。
-                break;
+                // 手を戻したあと、探索を打ち切る。
+                cutoff = true;
             }
 
             // 1手戻す。
             {
                 GAME_RECORD_WRAP.try_write().unwrap().unmake_movement2(self.unmakemove_callback);
+            }
+
+            if cutoff {
+                // 探索を打ち切る。
+                break;
             }
         }
 
