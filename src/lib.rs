@@ -22,7 +22,14 @@ fn empty_pick_movements_callback(_max_depth: i16, _cur_depth: i16) -> HashSet<u6
     HashSet::new()
 }
 
-fn empty_compare_best_callback(_best_movement: &mut Movement, _best_evaluation: &mut i16, _movement: Movement, _child_evaluation: i16) {
+/// 指し手の比較。
+///
+/// * `_best_movement` - ベストな指し手。
+/// * `_alpha` - alpha。より良い手があれば増える。
+/// * `_beta` - beta。
+/// * `_movement` - 今回比較する指し手。
+/// * `_child_evaluation` - 今回比較する指し手の評価値。
+fn empty_compare_best_callback(_best_movement: &mut Movement, _alpha: &mut i16, _beta: i16, _movement: Movement, _child_evaluation: i16) {
 }
 
 /// 探索オブジェクト。思考開始時に作成して使う。
@@ -31,7 +38,15 @@ pub struct Searcher{
     pub makemove_callback: fn(&KmSyurui),
     pub unmakemove_callback: fn(&KmSyurui),
     pub pick_movements_callback: fn(max_depth: i16, cur_depth: i16) -> HashSet<u64>,
-    pub compare_best_callback: fn(&mut Movement, &mut i16, Movement, i16),
+
+    /// 指し手の比較。
+    ///
+    /// 1. ベストな指し手。
+    /// 2. alpha。より良い手があれば増える。
+    /// 3. beta。
+    /// 4. 今回比較する指し手。
+    /// 5. 今回比較する指し手の評価値。
+    pub compare_best_callback: fn(&mut Movement, &mut i16, i16, Movement, i16),
 }
 
 impl Searcher{
@@ -48,8 +63,12 @@ impl Searcher{
 
     /// 探索。
     /// 
+    /// * `max_depth` - 潜りたい深さ。
+    /// * `cur_depth` - 現在の深さ。末端が 0。
+    /// * `min_alpha` - 最低評価値。これより低い評価値は無視する。
+    /// * `beta` - 上限評価値。これより評価が高いなら探索を打ち切る。
     /// Returns: ベストムーブ, 評価値。
-    pub fn search(&mut self, max_depth: i16, cur_depth: i16) -> (Movement, i16) {
+    pub fn search(&mut self, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (Movement, i16) {
 
         if 0 == cur_depth {
             // 葉。
@@ -62,7 +81,7 @@ impl Searcher{
 
 
         let mut best_movement = Movement::new();
-        let mut best_evaluation = -30000;
+        let mut alpha = min_alpha; // ベスト評価値
         'idea: for hash_mv in hashset_movement.iter() {
             let movement = Movement::from_hash( *hash_mv );
 
@@ -72,12 +91,12 @@ impl Searcher{
             }
 
             // 子を探索へ。
-            let (_child_movement, mut child_evaluation) = self.search(max_depth, cur_depth-1);
+            let (_child_movement, mut child_evaluation) = self.search(max_depth, cur_depth-1, -beta, -alpha);
             // 相手の評価値を逆さにする。
             child_evaluation = -child_evaluation;
 
             // 比較して、一番良い手を選ぶ。
-            (self.compare_best_callback)(&mut best_movement, &mut best_evaluation, movement, child_evaluation);
+            (self.compare_best_callback)(&mut best_movement, &mut alpha, beta, movement, child_evaluation);
 
             // 1手戻す。
             {
@@ -86,6 +105,6 @@ impl Searcher{
         }
 
         // 返却。
-        (best_movement, best_evaluation)
+        (best_movement, alpha)
     }
 }
