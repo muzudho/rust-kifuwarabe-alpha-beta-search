@@ -40,6 +40,8 @@ fn empty_compare_best_callback(_best_movement: &mut Movement, _alpha: &mut i16, 
     false
 }
 
+type CompareBestCallback = fn(best_movement: &mut Movement, alpha: &mut i16, beta: i16, movement: Movement, child_evaluation: i16) -> bool;
+
 /// 探索オブジェクト。思考開始時に作成して使う。
 pub struct AlphaBetaSearcher{
     /// 探索を打ち切るなら真。
@@ -58,7 +60,7 @@ pub struct AlphaBetaSearcher{
     /// 5. 今回比較する指し手の評価値。
     ///
     /// 探索を打ち切るなら真。
-    pub compare_best_callback: fn(&mut Movement, &mut i16, i16, Movement, i16) -> bool,
+    pub compare_best_callback: CompareBestCallback, //fn(&mut Movement, &mut i16, i16, Movement, i16) -> bool,
 }
 
 impl AlphaBetaSearcher{
