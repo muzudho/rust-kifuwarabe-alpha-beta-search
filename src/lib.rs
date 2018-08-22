@@ -1,4 +1,5 @@
 /// 探索部だぜ☆（＾～＾）
+/// アルファベータ探索で、さらに　ネガマックスだぜ☆（＾ｑ＾）
 extern crate kifuwarabe_movement;
 extern crate kifuwarabe_position;
 
@@ -40,7 +41,9 @@ fn empty_compare_best_callback(_best_movement: &mut Movement, _alpha: &mut i16, 
 }
 
 /// 探索オブジェクト。思考開始時に作成して使う。
-pub struct Searcher{
+pub struct AlphaBetaSearcher{
+    /// 探索を打ち切るなら真。
+    pub quittance: bool,
     pub leaf_callback: fn() -> (Movement, i16),
     pub makemove_callback: fn(&KmSyurui),
     pub unmakemove_callback: fn(&KmSyurui),
@@ -58,9 +61,10 @@ pub struct Searcher{
     pub compare_best_callback: fn(&mut Movement, &mut i16, i16, Movement, i16) -> bool,
 }
 
-impl Searcher{
-    pub fn new()->Searcher{
-        Searcher{
+impl AlphaBetaSearcher{
+    pub fn new()->AlphaBetaSearcher{
+        AlphaBetaSearcher{
+            quittance: false,
             leaf_callback: empty_leaf_callback,
             makemove_callback: empty_makemove_callback,
             unmakemove_callback: empty_unmakemove_callback,
@@ -94,6 +98,11 @@ impl Searcher{
         'idea: for hash_mv in hashset_movement.iter() {
             let movement = Movement::from_hash( *hash_mv );
 
+            if self.quittance {
+                // 指す前に、探索を打ち切る。
+                break;
+            }
+
             // 1手指す。
             {
                 GAME_RECORD_WRAP.try_write().unwrap().make_movement2(&movement, self.makemove_callback);
@@ -117,8 +126,8 @@ impl Searcher{
                 GAME_RECORD_WRAP.try_write().unwrap().unmake_movement2(self.unmakemove_callback);
             }
 
-            if cutoff {
-                // 探索を打ち切る。
+            if cutoff || self.quittance {
+                // 指した駒を戻したところで、探索を打ち切る。
                 break;
             }
         }
