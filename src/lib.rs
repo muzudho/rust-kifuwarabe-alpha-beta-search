@@ -1,11 +1,5 @@
 /// 探索部だぜ☆（＾～＾）
 /// アルファベータ探索で、さらに　ネガマックスだぜ☆（＾ｑ＾）
-extern crate kifuwarabe_movement;
-extern crate kifuwarabe_position;
-
-use GAME_RECORD_WRAP;
-use kifuwarabe_movement::*;
-use kifuwarabe_position::*;
 use std::collections::HashSet;
 
 /// 投了。
@@ -33,15 +27,11 @@ pub struct CallbackCatalog<T> {
     ///
     /// # Arguments.
     ///
-    /// * `&KmSyurui` - 駒種類。
-    pub makemove_callback: fn(&KmSyurui),
+    /// * `movement_hash` - 指し手のハッシュ値。
+    pub makemove_callback: fn(movement_hash: u64),
 
     /// １手戻す。
-    ///
-    /// # Arguments.
-    ///
-    /// * `&KmSyurui` - 駒種類。
-    pub unmakemove_callback: fn(&KmSyurui),
+    pub unmakemove_callback: fn(),
 
     /// 指し手生成。
     ///
@@ -54,7 +44,7 @@ pub struct CallbackCatalog<T> {
     /// # Returns.
     ///
     /// 1. 指し手のハッシュのセット。
-    /// 2. 探索をすべて打ち切るなら真。
+    /// 2. 探索をすみやかに安全に終了するなら真。
     pub pick_movements_callback: fn(t: &mut T, max_depth: i16, cur_depth: i16) -> (HashSet<u64>, bool),
 
     /// 指し手の比較。
@@ -71,7 +61,7 @@ pub struct CallbackCatalog<T> {
     /// # Returns.
     ///
     /// 1. 探索を打ち切るなら真。（ベータカット）
-    /// 2. 探索をすべて打ち切るなら真。
+    /// 2. 探索をすみやかに安全に終了するなら真。
     pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16) -> (bool, bool),
 }
 
@@ -101,12 +91,9 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
     let mut best_movement_hash = TORYO_HASH; // 手が無かったら投了
     let mut alpha = min_alpha; // ベスト評価値
     'idea: for next_movement_hash in hashset_movement.iter() {
-        let next_movement = Movement::from_hash( *next_movement_hash );
 
         // 1手指す。
-        {
-            GAME_RECORD_WRAP.try_write().unwrap().make_movement2(&next_movement, callback_catalog.makemove_callback);
-        }
+        (callback_catalog.makemove_callback)(*next_movement_hash);
 
         let mut child_evaluation;
         if 0 == cur_depth-1 {
@@ -131,9 +118,7 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
         }
 
         // 1手戻す。
-        {
-            GAME_RECORD_WRAP.try_write().unwrap().unmake_movement2(callback_catalog.unmakemove_callback);
-        }
+        (callback_catalog.unmakemove_callback)();
 
         if cutoff || quittance2 {
             // 指した駒を戻したところで、探索を打ち切る。

@@ -3,11 +3,8 @@
 /// cargo run --example main
 /// ```
 extern crate kifuwarabe_alpha_beta_search;
-extern crate kifuwarabe_movement;
-extern crate kifuwarabe_position;
 
 use kifuwarabe_alpha_beta_search::*;
-use kifuwarabe_position::*;
 use std::collections::HashSet;
 
 
@@ -32,11 +29,11 @@ fn visit_leaf_callback<T>(_t: &mut T) -> (i16)
     0
 }
 
-fn makemove_callback(_cap: &KmSyurui) {
-    println!("- 1手指す。");
+fn makemove_callback(movement_hash: u64) {
+    println!("- 1手指す。 hash: {}", movement_hash);
 }
 
-fn unmakemove_callback(_cap: &KmSyurui) {
+fn unmakemove_callback() {
     println!("- 1手戻す。");
 }
 
@@ -47,12 +44,10 @@ fn unmakemove_callback(_cap: &KmSyurui) {
 fn pick_movements_callback<T>(_t: &mut T, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
 {
     println!("- 選択肢を返す。");
-    let hashset = HashSet::<u64>::new();
-    /*
+    let mut hashset = HashSet::<u64>::new();
     hashset.insert(0);
     hashset.insert(1);
     hashset.insert(2);
-     */
     (hashset, false)
 }
 
@@ -93,8 +88,8 @@ fn main() {
         compare_best_callback: compare_best_callback,
     };
 
-    let max_depth = 1;
-    let cur_depth = 1;
+    let max_depth = 2;
+    let cur_depth = max_depth;
     let min_alpha = -<i16>::max_value(); // <i16>::min_value() (負値) にすると、負数の方が変域が1だけ広く、正負符号を反転したときに正数があふれてしまうので、正の最大数に - を付ける。
     let beta = <i16>::max_value();
     let (_best_movement, _evaluation) = search(&mut searcher, &mut callback_catalog, max_depth, cur_depth, min_alpha, beta);
