@@ -45,12 +45,12 @@ mod example {
         0
     }
 
-    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64, _position1: &mut Kyokumen) {
+    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64, _position1: &mut Position) {
         searcher.movemaker_count += 1;
         println!("- 1手指す。 hash: {}", movement_hash);
     }
 
-    pub fn unmakemove_callback(searcher: &mut Searcher, _position1: &mut Kyokumen) {
+    pub fn unmakemove_callback(searcher: &mut Searcher, _position1: &mut Position) {
         searcher.moveunmaker_count += 1;
         println!("- 1手戻す。");
     }
@@ -111,7 +111,7 @@ fn main() {
     let min_alpha = -<i16>::max_value(); // <i16>::min_value() (負値) にすると、負数の方が変域が1だけ広く、正負符号を反転したときに正数があふれてしまうので、正の最大数に - を付ける。
     let beta = <i16>::max_value();
 
-    let mut position1 = Kyokumen::new();
+    let mut position1 = Position::new();
 
     let (_best_movement, _evaluation) = start(&mut searcher, &mut callback_catalog, max_depth, cur_depth, min_alpha, beta, &mut position1);
 

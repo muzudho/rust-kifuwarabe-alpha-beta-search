@@ -33,14 +33,14 @@ pub struct CallbackCatalog<T> {
     ///
     /// * `movement_hash` - 指し手のハッシュ値。
     /// * `position1` - 現局面。
-    pub makemove_callback: fn(t: &mut T, movement_hash: u64, position1: &mut Kyokumen),
+    pub makemove_callback: fn(t: &mut T, movement_hash: u64, position1: &mut Position),
 
     /// １手戻す。
     ///
     /// # Arguments.
     ///
     /// * `position1` - 現局面。
-    pub unmakemove_callback: fn(t: &mut T, position1: &mut Kyokumen),
+    pub unmakemove_callback: fn(t: &mut T, position1: &mut Position),
 
     /// 指し手生成。
     ///
@@ -101,7 +101,7 @@ impl DisplayInformation {
 ///
 /// 0. 最善手のハッシュ値。
 /// 1. 評価値。
-pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, position1: &mut Kyokumen) -> (u64, i16)
+pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, position1: &mut Position) -> (u64, i16)
 {
     let mut display_information = DisplayInformation::new();
     search(t, callback_catalog, max_depth, cur_depth, min_alpha, beta, position1, &mut display_information)
@@ -123,7 +123,7 @@ pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth:
 ///
 /// 0. 最善手のハッシュ値。
 /// 1. 評価値。
-fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, position1: &mut Kyokumen, display_information: &mut DisplayInformation) -> (u64, i16)
+fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, position1: &mut Position, display_information: &mut DisplayInformation) -> (u64, i16)
 {
     // 現局面の合法手を取得する。
     let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth);
