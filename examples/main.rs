@@ -3,15 +3,12 @@
 /// cargo run --example main
 /// ```
 extern crate kifuwarabe_alpha_beta_search;
-extern crate kifuwarabe_position;
 
 use kifuwarabe_alpha_beta_search::*;
-use kifuwarabe_position::*;
 use example::*;
 
 mod example {
     use kifuwarabe_alpha_beta_search::*;
-    use kifuwarabe_position::*;
     use std::collections::HashSet;
 
 
@@ -38,19 +35,19 @@ mod example {
 
 
 
-    pub fn visit_leaf_callback(searcher: &mut Searcher, _position1: &mut Position, display_information: &DisplayInformation) -> (i16)
+    pub fn visit_leaf_callback(searcher: &mut Searcher, display_information: &DisplayInformation) -> (i16)
     {
         searcher.leaf_count += 1;
         println!("- 末端局面を評価する。 nodes: {}", display_information.nodes);
         0
     }
 
-    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64, _position1: &mut Position) {
+    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64) {
         searcher.movemaker_count += 1;
         println!("- 1手指す。 hash: {}", movement_hash);
     }
 
-    pub fn unmakemove_callback(searcher: &mut Searcher, _position1: &mut Position) {
+    pub fn unmakemove_callback(searcher: &mut Searcher) {
         searcher.moveunmaker_count += 1;
         println!("- 1手戻す。");
     }
@@ -59,7 +56,7 @@ mod example {
     ///
     /// 1. 指し手のハッシュのセット。
     /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-    pub fn pick_movements_callback(searcher: &mut Searcher, _max_depth: i16, _cur_depth: i16, _position1: &mut Position) -> (HashSet<u64>, bool)
+    pub fn pick_movements_callback(searcher: &mut Searcher, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
     {
         searcher.movepicker_count += 1;
         println!("- 選択肢を返す。");
@@ -84,7 +81,7 @@ mod example {
     ///
     /// 1. 探索を打ち切るなら真。（ベータカット）
     /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-    pub fn compare_best_callback(searcher: &mut Searcher, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16, _position1: &mut Position) -> (bool, bool)
+    pub fn compare_best_callback(searcher: &mut Searcher, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16) -> (bool, bool)
     {
         searcher.comparer_count += 1;
         println!("- 手を比較し、より良い方を選ぶ。");
@@ -111,9 +108,7 @@ fn main() {
     let min_alpha = -<i16>::max_value(); // <i16>::min_value() (負値) にすると、負数の方が変域が1だけ広く、正負符号を反転したときに正数があふれてしまうので、正の最大数に - を付ける。
     let beta = <i16>::max_value();
 
-    let mut position1 = Position::new();
-
-    let (_best_movement, _evaluation) = start(&mut searcher, &mut callback_catalog, max_depth, cur_depth, min_alpha, beta, &mut position1);
+    let (_best_movement, _evaluation) = start(&mut searcher, &mut callback_catalog, max_depth, cur_depth, min_alpha, beta);
 
     println!("- leaf: {}, makemove: {}, unmake: {}, pick: {},  compare: {}",
         searcher.leaf_count,

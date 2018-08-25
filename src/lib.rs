@@ -1,7 +1,3 @@
-extern crate kifuwarabe_position;
-
-use kifuwarabe_position::*;
-
 /// 探索部だぜ☆（＾～＾）
 /// アルファベータ探索で、さらに　ネガマックスだぜ☆（＾ｑ＾）
 use std::collections::HashSet;
@@ -21,28 +17,27 @@ pub struct CallbackCatalog<T> {
     /// # Arguments.
     ///
     /// * `t` - 任意のオブジェクト。
-    /// * `position1` - 現局面。
     /// * `display_information` - 表示用の情報。
     ///
     /// # Returns.
     ///
     /// 0. 評価値
-    pub visit_leaf_callback: fn(t: &mut T, position1: &mut Position, display_information: &DisplayInformation) -> (i16),
+    pub visit_leaf_callback: fn(t: &mut T, display_information: &DisplayInformation) -> (i16),
 
     /// １手指す。
     ///
     /// # Arguments.
     ///
+    /// * `t` - 任意のオブジェクト。
     /// * `movement_hash` - 指し手のハッシュ値。
-    /// * `position1` - 現局面。
-    pub makemove_callback: fn(t: &mut T, movement_hash: u64, position1: &mut Position),
+    pub makemove_callback: fn(t: &mut T, movement_hash: u64),
 
     /// １手戻す。
     ///
     /// # Arguments.
     ///
-    /// * `position1` - 現局面。
-    pub unmakemove_callback: fn(t: &mut T, position1: &mut Position),
+    /// * `t` - 任意のオブジェクト。
+    pub unmakemove_callback: fn(t: &mut T),
 
     /// 指し手生成。
     ///
@@ -51,13 +46,12 @@ pub struct CallbackCatalog<T> {
     /// * `t` - 任意のオブジェクト。
     /// * `max_depth` - 探索の最大深さ。
     /// * `cur_depth` - 現在探索中の深さ。
-    /// * `position1` - 現局面。
     ///
     /// # Returns.
     ///
     /// 1. 指し手のハッシュのセット。
     /// 2. 探索をすみやかに安全に終了するなら真。
-    pub pick_movements_callback: fn(t: &mut T, max_depth: i16, cur_depth: i16, position1: &mut Position) -> (HashSet<u64>, bool),
+    pub pick_movements_callback: fn(t: &mut T, max_depth: i16, cur_depth: i16) -> (HashSet<u64>, bool),
 
     /// 指し手の比較。
     ///
@@ -69,13 +63,12 @@ pub struct CallbackCatalog<T> {
     /// * `beta` - ベータ。
     /// * `movement_hash` - 今回比較する指し手のハッシュ値。
     /// * `evaluation` - 今回比較する指し手の評価値。
-    /// * `position1` - 現局面。
     ///
     /// # Returns.
     ///
     /// 1. 探索を打ち切るなら真。（ベータカット）
     /// 2. 探索をすみやかに安全に終了するなら真。
-    pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16, position1: &mut Position) -> (bool, bool),
+    pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16) -> (bool, bool),
 }
 
 /// 情報表示
@@ -99,16 +92,15 @@ impl DisplayInformation {
 /// * `cur_depth` - 現在の深さ。末端が 0。
 /// * `min_alpha` - 最低評価値。これより低い評価値は無視する。
 /// * `beta` - 上限評価値。これより評価が高いなら探索を打ち切る。
-/// * `position1` - 現局面。
 ///
 /// # Returns.
 ///
 /// 0. 最善手のハッシュ値。
 /// 1. 評価値。
-pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, position1: &mut Position) -> (u64, i16)
+pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (u64, i16)
 {
     let mut display_information = DisplayInformation::new();
-    search(t, callback_catalog, max_depth, cur_depth, min_alpha, beta, position1, &mut display_information)
+    search(t, callback_catalog, max_depth, cur_depth, min_alpha, beta, &mut display_information)
 }
 
 
@@ -120,17 +112,16 @@ pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth:
 /// * `cur_depth` - 現在の深さ。末端が 0。
 /// * `min_alpha` - 最低評価値。これより低い評価値は無視する。
 /// * `beta` - 上限評価値。これより評価が高いなら探索を打ち切る。
-/// * `position1` - 現局面。
 /// * `display_information` - 画面表示情報。
 ///
 /// # Returns.
 ///
 /// 0. 最善手のハッシュ値。
 /// 1. 評価値。
-fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, position1: &mut Position, display_information: &mut DisplayInformation) -> (u64, i16)
+fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, display_information: &mut DisplayInformation) -> (u64, i16)
 {
     // 現局面の合法手を取得する。
-    let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth, position1);
+    let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth);
     if quittance1 {
         // 指し手生成が中断された。探索をすみやかに安全に終了する。
         return (RESIGN_HASH, min_alpha);
@@ -142,16 +133,16 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
     'idea: for next_movement_hash in hashset_movement.iter() {
 
         // 1手指す。
-        (callback_catalog.makemove_callback)(t, *next_movement_hash, position1);
+        (callback_catalog.makemove_callback)(t, *next_movement_hash);
 
         let mut child_evaluation;
         if 0 == cur_depth-1 {
             // 葉。
-            child_evaluation = (callback_catalog.visit_leaf_callback)(t, position1, display_information);
+            child_evaluation = (callback_catalog.visit_leaf_callback)(t, display_information);
 
         } else {
             // 子を探索へ。
-            let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha, position1, display_information);
+            let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha, display_information);
             // 相手の評価値を逆さにする。
             child_evaluation = -opponent_evaluation;
 
@@ -159,7 +150,7 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
 
         // 比較して、一番良い手を選ぶ。
         let mut cutoff = false;
-        let (beta_cutoff, quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation, position1);
+        let (beta_cutoff, quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation);
         if beta_cutoff
         {
             // 手を戻したあと、探索を打ち切る。
@@ -167,7 +158,7 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
         }
 
         // 1手戻す。
-        (callback_catalog.unmakemove_callback)(t, position1);
+        (callback_catalog.unmakemove_callback)(t);
         display_information.nodes += 1;
 
         if cutoff || quittance2 {
