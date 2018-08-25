@@ -10,12 +10,20 @@ use std::collections::HashSet;
 
 /// 任意の構造体を作成する。
 struct Searcher {
-
+    pub leaf_count: i32,
+    pub movemaker_count: i32,
+    pub moveunmaker_count: i32,
+    pub movepicker_count: i32,
+    pub comparer_count: i32,
 }
 impl Searcher {
     fn new() -> Searcher {
         Searcher {
-
+            leaf_count: 0,
+            movemaker_count: 0,
+            moveunmaker_count: 0,
+            movepicker_count: 0,
+            comparer_count: 0,
         }
     }
 }
@@ -23,17 +31,20 @@ impl Searcher {
 
 
 
-fn visit_leaf_callback<T>(_t: &mut T, display_information: &DisplayInformation) -> (i16)
+fn visit_leaf_callback(searcher: &mut Searcher, display_information: &DisplayInformation) -> (i16)
 {
+    searcher.leaf_count += 1;
     println!("- 末端局面を評価する。 nodes: {}", display_information.nodes);
     0
 }
 
-fn makemove_callback<T>(_t: &mut T, movement_hash: u64) {
+fn makemove_callback(searcher: &mut Searcher, movement_hash: u64) {
+    searcher.movemaker_count += 1;
     println!("- 1手指す。 hash: {}", movement_hash);
 }
 
-fn unmakemove_callback<T>(_t: &mut T) {
+fn unmakemove_callback(searcher: &mut Searcher) {
+    searcher.moveunmaker_count += 1;
     println!("- 1手戻す。");
 }
 
@@ -41,8 +52,9 @@ fn unmakemove_callback<T>(_t: &mut T) {
 ///
 /// 1. 指し手のハッシュのセット。
 /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-fn pick_movements_callback<T>(_t: &mut T, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
+fn pick_movements_callback(searcher: &mut Searcher, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
 {
+    searcher.movepicker_count += 1;
     println!("- 選択肢を返す。");
     let mut hashset = HashSet::<u64>::new();
     hashset.insert(0);
@@ -65,8 +77,9 @@ fn pick_movements_callback<T>(_t: &mut T, _max_depth: i16, _cur_depth: i16) -> (
 ///
 /// 1. 探索を打ち切るなら真。（ベータカット）
 /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-fn compare_best_callback<T>(_t: &mut T, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16) -> (bool, bool)
+fn compare_best_callback(searcher: &mut Searcher, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16) -> (bool, bool)
 {
+    searcher.comparer_count += 1;
     println!("- 手を比較し、より良い方を選ぶ。");
     (false, false)
 }
@@ -95,4 +108,11 @@ fn main() {
 
     let (_best_movement, _evaluation) = start(&mut searcher, &mut callback_catalog, max_depth, cur_depth, min_alpha, beta);
 
+    println!("- leaf: {}, makemove: {}, unmake: {}, pick: {},  compare: {}",
+        searcher.leaf_count,
+        searcher.movemaker_count,
+        searcher.moveunmaker_count,
+        searcher.movepicker_count,
+        searcher.comparer_count,
+    );
 }
