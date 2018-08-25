@@ -29,11 +29,11 @@ fn visit_leaf_callback<T>(_t: &mut T, display_information: &DisplayInformation) 
     0
 }
 
-fn makemove_callback(movement_hash: u64) {
+fn makemove_callback<T>(_t: &mut T, movement_hash: u64) {
     println!("- 1手指す。 hash: {}", movement_hash);
 }
 
-fn unmakemove_callback() {
+fn unmakemove_callback<T>(_t: &mut T) {
     println!("- 1手戻す。");
 }
 

@@ -28,10 +28,10 @@ pub struct CallbackCatalog<T> {
     /// # Arguments.
     ///
     /// * `movement_hash` - 指し手のハッシュ値。
-    pub makemove_callback: fn(movement_hash: u64),
+    pub makemove_callback: fn(t: &mut T, movement_hash: u64),
 
     /// １手戻す。
-    pub unmakemove_callback: fn(),
+    pub unmakemove_callback: fn(t: &mut T),
 
     /// 指し手生成。
     ///
@@ -127,7 +127,7 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
     'idea: for next_movement_hash in hashset_movement.iter() {
 
         // 1手指す。
-        (callback_catalog.makemove_callback)(*next_movement_hash);
+        (callback_catalog.makemove_callback)(t, *next_movement_hash);
 
         let mut child_evaluation;
         if 0 == cur_depth-1 {
@@ -152,7 +152,7 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
         }
 
         // 1手戻す。
-        (callback_catalog.unmakemove_callback)();
+        (callback_catalog.unmakemove_callback)(t);
         display_information.nodes += 1;
 
         if cutoff || quittance2 {
