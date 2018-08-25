@@ -7,7 +7,6 @@ extern crate kifuwarabe_movement;
 extern crate kifuwarabe_position;
 
 use kifuwarabe_alpha_beta_search::*;
-use kifuwarabe_movement::*;
 use kifuwarabe_position::*;
 use std::collections::HashSet;
 
@@ -27,10 +26,10 @@ impl Searcher {
 
 
 
-fn leaf_callback<T>(_t: &mut T) -> (Movement, i16)
+fn visit_leaf_callback<T>(_t: &mut T) -> (i16)
 {
     println!("- 末端局面を評価する。");
-    (Movement::new(), 0)
+    0
 }
 
 fn makemove_callback(_cap: &KmSyurui) {
@@ -48,24 +47,30 @@ fn unmakemove_callback(_cap: &KmSyurui) {
 fn pick_movements_callback<T>(_t: &mut T, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
 {
     println!("- 選択肢を返す。");
-    (HashSet::new(), false)
+    let hashset = HashSet::<u64>::new();
+    /*
+    hashset.insert(0);
+    hashset.insert(1);
+    hashset.insert(2);
+     */
+    (hashset, false)
 }
 
 /// 指し手の比較。
 ///
 /// # Arguments.
 ///
-/// * `_best_movement` - ベストな指し手。
+/// * `best_movement_hash` - ベストな指し手のハッシュ値。
 /// * `_alpha` - alpha。より良い手があれば増える。
 /// * `_beta` - beta。
-/// * `_movement` - 今回比較する指し手。
+/// * `_movement` - 今回比較する指し手のハッシュ値。
 /// * `_child_evaluation` - 今回比較する指し手の評価値。
 ///
 /// # Returns.
 ///
 /// 1. 探索を打ち切るなら真。（ベータカット）
 /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-fn compare_best_callback<T>(_t: &mut T, _best_movement: &mut Movement, _alpha: &mut i16, _beta: i16, _movement: Movement, _child_evaluation: i16) -> (bool, bool)
+fn compare_best_callback<T>(_t: &mut T, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16) -> (bool, bool)
 {
     println!("- 手を比較し、より良い方を選ぶ。");
     (false, false)
@@ -81,7 +86,7 @@ fn main() {
 
     // 任意の構造体を受け取る、コールバック カタログを作成する。
     let mut callback_catalog = CallbackCatalog {
-        leaf_callback: leaf_callback,
+        visit_leaf_callback: visit_leaf_callback,
         makemove_callback: makemove_callback,
         unmakemove_callback: unmakemove_callback,
         pick_movements_callback: pick_movements_callback,

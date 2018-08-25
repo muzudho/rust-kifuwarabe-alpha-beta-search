@@ -8,6 +8,9 @@ use kifuwarabe_movement::*;
 use kifuwarabe_position::*;
 use std::collections::HashSet;
 
+/// 投了。
+pub const TORYO_HASH : u64 = 0;
+
 /// コールバック関数を差し替えられる形にしたオブジェクト。
 ///
 /// # Generic types.
@@ -23,9 +26,8 @@ pub struct CallbackCatalog<T> {
     ///
     /// # Returns.
     ///
-    /// 0. 指し手
-    /// 1. 評価値
-    pub leaf_callback: fn(t: &mut T) -> (Movement, i16),
+    /// 0. 評価値
+    pub visit_leaf_callback: fn(t: &mut T) -> (i16),
 
     /// １手指す。
     ///
@@ -60,17 +62,17 @@ pub struct CallbackCatalog<T> {
     /// # Arguments.
     ///
     /// * `t` - 任意のオブジェクト。
-    /// * `bestmove` - ベストな指し手。
+    /// * `best_movement_hash` - ベストな指し手のハッシュ値。
     /// * `alpha` - より良い手があれば増える。
     /// * `beta` - ベータ。
-    /// * `movement` - 今回比較する指し手のハッシュ値。
+    /// * `movement_hash` - 今回比較する指し手のハッシュ値。
     /// * `evaluation` - 今回比較する指し手の評価値。
     ///
     /// # Returns.
     ///
     /// 1. 探索を打ち切るなら真。（ベータカット）
     /// 2. 探索をすべて打ち切るなら真。
-    pub compare_best_callback: fn(t: &mut T, bestmove: &mut Movement, alpha: &mut i16, beta: i16, movement: Movement, evaluation: i16) -> (bool, bool),
+    pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16) -> (bool, bool),
 }
 
 /// 探索。
@@ -84,43 +86,44 @@ pub struct CallbackCatalog<T> {
 ///
 /// # Returns.
 ///
-/// 0. ベストムーブ。
+/// 0. 最善手のハッシュ値。
 /// 1. 評価値。
-pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (Movement, i16)
+pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (u64, i16)
 {
-
-    if 0 == cur_depth {
-        // 葉。
-        return (callback_catalog.leaf_callback)(t);
-    }
-
-
     // 現局面の合法手を取得する。
     let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth);
     if quittance1 {
-        // 指す前に、すべての探索を打ち切る。
-        return (Movement::new(), min_alpha);
+        // 指し手生成が中断された。探索をすみやかに安全に終了する。
+        return (TORYO_HASH, min_alpha);
     }
 
 
-    let mut best_movement = Movement::new();
+    let mut best_movement_hash = TORYO_HASH; // 手が無かったら投了
     let mut alpha = min_alpha; // ベスト評価値
-    'idea: for hash_mv in hashset_movement.iter() {
-        let movement = Movement::from_hash( *hash_mv );
+    'idea: for next_movement_hash in hashset_movement.iter() {
+        let next_movement = Movement::from_hash( *next_movement_hash );
 
         // 1手指す。
         {
-            GAME_RECORD_WRAP.try_write().unwrap().make_movement2(&movement, callback_catalog.makemove_callback);
+            GAME_RECORD_WRAP.try_write().unwrap().make_movement2(&next_movement, callback_catalog.makemove_callback);
         }
 
-        // 子を探索へ。
-        let (_child_movement, mut child_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha);
-        // 相手の評価値を逆さにする。
-        child_evaluation = -child_evaluation;
+        let mut child_evaluation;
+        if 0 == cur_depth-1 {
+            // 葉。
+            child_evaluation = (callback_catalog.visit_leaf_callback)(t);
+
+        } else {
+            // 子を探索へ。
+            let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha);
+            // 相手の評価値を逆さにする。
+            child_evaluation = -opponent_evaluation;
+
+        }
 
         // 比較して、一番良い手を選ぶ。
         let mut cutoff = false;
-        let (beta_cutoff, quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement, &mut alpha, beta, movement, child_evaluation);
+        let (beta_cutoff, quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation);
         if beta_cutoff
         {
             // 手を戻したあと、探索を打ち切る。
@@ -139,5 +142,5 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
     }
 
     // 返却。
-    (best_movement, alpha)
+    (best_movement_hash, alpha)
 }
