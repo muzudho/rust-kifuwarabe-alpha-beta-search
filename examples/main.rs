@@ -3,13 +3,17 @@
 /// cargo run --example main
 /// ```
 extern crate kifuwarabe_alpha_beta_search;
+extern crate kifuwarabe_position;
 
 use kifuwarabe_alpha_beta_search::*;
+use kifuwarabe_position::*;
 use example::*;
 
 mod example {
     use kifuwarabe_alpha_beta_search::*;
+    use kifuwarabe_position::*;
     use std::collections::HashSet;
+
 
     /// 任意の構造体を作成する。
     pub struct Searcher {
@@ -41,12 +45,12 @@ mod example {
         0
     }
 
-    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64) {
+    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64, _position1: &mut Kyokumen) {
         searcher.movemaker_count += 1;
         println!("- 1手指す。 hash: {}", movement_hash);
     }
 
-    pub fn unmakemove_callback(searcher: &mut Searcher) {
+    pub fn unmakemove_callback(searcher: &mut Searcher, _position1: &mut Kyokumen) {
         searcher.moveunmaker_count += 1;
         println!("- 1手戻す。");
     }
@@ -107,7 +111,9 @@ fn main() {
     let min_alpha = -<i16>::max_value(); // <i16>::min_value() (負値) にすると、負数の方が変域が1だけ広く、正負符号を反転したときに正数があふれてしまうので、正の最大数に - を付ける。
     let beta = <i16>::max_value();
 
-    let (_best_movement, _evaluation) = start(&mut searcher, &mut callback_catalog, max_depth, cur_depth, min_alpha, beta);
+    let mut position1 = Kyokumen::new();
+
+    let (_best_movement, _evaluation) = start(&mut searcher, &mut callback_catalog, max_depth, cur_depth, min_alpha, beta, &mut position1);
 
     println!("- leaf: {}, makemove: {}, unmake: {}, pick: {},  compare: {}",
         searcher.leaf_count,
