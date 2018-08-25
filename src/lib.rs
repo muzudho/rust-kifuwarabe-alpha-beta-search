@@ -21,11 +21,13 @@ pub struct CallbackCatalog<T> {
     /// # Arguments.
     ///
     /// * `t` - 任意のオブジェクト。
+    /// * `position1` - 現局面。
+    /// * `display_information` - 表示用の情報。
     ///
     /// # Returns.
     ///
     /// 0. 評価値
-    pub visit_leaf_callback: fn(t: &mut T, display_information: &DisplayInformation) -> (i16),
+    pub visit_leaf_callback: fn(t: &mut T, position1: &mut Position, display_information: &DisplayInformation) -> (i16),
 
     /// １手指す。
     ///
@@ -49,12 +51,13 @@ pub struct CallbackCatalog<T> {
     /// * `t` - 任意のオブジェクト。
     /// * `max_depth` - 探索の最大深さ。
     /// * `cur_depth` - 現在探索中の深さ。
+    /// * `position1` - 現局面。
     ///
     /// # Returns.
     ///
     /// 1. 指し手のハッシュのセット。
     /// 2. 探索をすみやかに安全に終了するなら真。
-    pub pick_movements_callback: fn(t: &mut T, max_depth: i16, cur_depth: i16) -> (HashSet<u64>, bool),
+    pub pick_movements_callback: fn(t: &mut T, max_depth: i16, cur_depth: i16, position1: &mut Position) -> (HashSet<u64>, bool),
 
     /// 指し手の比較。
     ///
@@ -66,12 +69,13 @@ pub struct CallbackCatalog<T> {
     /// * `beta` - ベータ。
     /// * `movement_hash` - 今回比較する指し手のハッシュ値。
     /// * `evaluation` - 今回比較する指し手の評価値。
+    /// * `position1` - 現局面。
     ///
     /// # Returns.
     ///
     /// 1. 探索を打ち切るなら真。（ベータカット）
     /// 2. 探索をすみやかに安全に終了するなら真。
-    pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16) -> (bool, bool),
+    pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16, position1: &mut Position) -> (bool, bool),
 }
 
 /// 情報表示
@@ -126,7 +130,7 @@ pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth:
 fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, position1: &mut Position, display_information: &mut DisplayInformation) -> (u64, i16)
 {
     // 現局面の合法手を取得する。
-    let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth);
+    let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth, position1);
     if quittance1 {
         // 指し手生成が中断された。探索をすみやかに安全に終了する。
         return (RESIGN_HASH, min_alpha);
@@ -143,7 +147,7 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
         let mut child_evaluation;
         if 0 == cur_depth-1 {
             // 葉。
-            child_evaluation = (callback_catalog.visit_leaf_callback)(t, display_information);
+            child_evaluation = (callback_catalog.visit_leaf_callback)(t, position1, display_information);
 
         } else {
             // 子を探索へ。
@@ -155,7 +159,7 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
 
         // 比較して、一番良い手を選ぶ。
         let mut cutoff = false;
-        let (beta_cutoff, quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation);
+        let (beta_cutoff, quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation, position1);
         if beta_cutoff
         {
             // 手を戻したあと、探索を打ち切る。

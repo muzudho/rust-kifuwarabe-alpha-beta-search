@@ -38,7 +38,7 @@ mod example {
 
 
 
-    pub fn visit_leaf_callback(searcher: &mut Searcher, display_information: &DisplayInformation) -> (i16)
+    pub fn visit_leaf_callback(searcher: &mut Searcher, _position1: &mut Position, display_information: &DisplayInformation) -> (i16)
     {
         searcher.leaf_count += 1;
         println!("- 末端局面を評価する。 nodes: {}", display_information.nodes);
@@ -59,7 +59,7 @@ mod example {
     ///
     /// 1. 指し手のハッシュのセット。
     /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-    pub fn pick_movements_callback(searcher: &mut Searcher, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
+    pub fn pick_movements_callback(searcher: &mut Searcher, _max_depth: i16, _cur_depth: i16, _position1: &mut Position) -> (HashSet<u64>, bool)
     {
         searcher.movepicker_count += 1;
         println!("- 選択肢を返す。");
@@ -84,7 +84,7 @@ mod example {
     ///
     /// 1. 探索を打ち切るなら真。（ベータカット）
     /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-    pub fn compare_best_callback(searcher: &mut Searcher, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16) -> (bool, bool)
+    pub fn compare_best_callback(searcher: &mut Searcher, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16, _position1: &mut Position) -> (bool, bool)
     {
         searcher.comparer_count += 1;
         println!("- 手を比較し、より良い方を選ぶ。");
