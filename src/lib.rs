@@ -92,33 +92,13 @@ impl DisplayInformation {
 /// * `cur_depth` - 現在の深さ。末端が 0。
 /// * `min_alpha` - 最低評価値。これより低い評価値は無視する。
 /// * `beta` - 上限評価値。これより評価が高いなら探索を打ち切る。
-///
-/// # Returns.
-///
-/// 0. 最善手のハッシュ値。
-/// 1. 評価値。
-pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (u64, i16)
-{
-    let mut display_information = DisplayInformation::new();
-    search(t, callback_catalog, max_depth, cur_depth, min_alpha, beta, &mut display_information)
-}
-
-
-/// 探索。
-/// 
-/// # Arguments.
-///
-/// * `max_depth` - 潜りたい深さ。
-/// * `cur_depth` - 現在の深さ。末端が 0。
-/// * `min_alpha` - 最低評価値。これより低い評価値は無視する。
-/// * `beta` - 上限評価値。これより評価が高いなら探索を打ち切る。
 /// * `display_information` - 画面表示情報。
 ///
 /// # Returns.
 ///
 /// 0. 最善手のハッシュ値。
 /// 1. 評価値。
-fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, display_information: &mut DisplayInformation) -> (u64, i16)
+pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, display_information: &mut DisplayInformation) -> (u64, i16)
 {
     // 現局面の合法手を取得する。
     let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth);
