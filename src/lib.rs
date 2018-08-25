@@ -68,15 +68,12 @@ pub struct CallbackCatalog<T> {
 /// 情報表示
 pub struct DisplayInformation {
     // 探索ノード数。1手戻したところで加算。
-    pub node: i64,
-    // 現在探索中の深さ。
-    pub cur_depth: i16,
+    pub nodes: i64,
 }
 impl DisplayInformation {
     pub fn new() -> DisplayInformation {
         DisplayInformation {
-            node: 0,
-            cur_depth: 0,
+            nodes: 0,
         }
     }
 }
@@ -97,9 +94,9 @@ impl DisplayInformation {
 pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (u64, i16)
 {
     let mut display_information = DisplayInformation::new();
-
     search(t, callback_catalog, max_depth, cur_depth, min_alpha, beta, &mut display_information)
 }
+
 
 /// 探索。
 /// 
@@ -117,8 +114,6 @@ pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth:
 /// 1. 評価値。
 fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, display_information: &mut DisplayInformation) -> (u64, i16)
 {
-    display_information.cur_depth = cur_depth;
-
     // 現局面の合法手を取得する。
     let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth);
     if quittance1 {
@@ -158,7 +153,7 @@ fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i1
 
         // 1手戻す。
         (callback_catalog.unmakemove_callback)();
-        display_information.node += 1;
+        display_information.nodes += 1;
 
         if cutoff || quittance2 {
             // 指した駒を戻したところで、探索を打ち切る。
