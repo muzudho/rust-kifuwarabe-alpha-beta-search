@@ -7,4 +7,4 @@ authors = ["muzudho <muzudho1@gmail.com>"]
 
 [dependencies.kifuwarabe_position]
 git = "https://github.com/muzudho/rust_kifuwarabe_position.git"
-rev = "51fa0953f8ab49ce46a45896b17dc55bc4b9b45a"
+rev = "39c301ced1f093585412da49068100e114dc0a30"
