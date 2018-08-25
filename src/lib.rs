@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 
 /// 投了。
-pub const TORYO_HASH : u64 = 0;
+pub const RESIGN_HASH : u64 = 0;
 
 /// コールバック関数を差し替えられる形にしたオブジェクト。
 ///
@@ -21,7 +21,7 @@ pub struct CallbackCatalog<T> {
     /// # Returns.
     ///
     /// 0. 評価値
-    pub visit_leaf_callback: fn(t: &mut T) -> (i16),
+    pub visit_leaf_callback: fn(t: &mut T, display_information: &DisplayInformation) -> (i16),
 
     /// １手指す。
     ///
@@ -65,6 +65,22 @@ pub struct CallbackCatalog<T> {
     pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16) -> (bool, bool),
 }
 
+/// 情報表示
+pub struct DisplayInformation {
+    // 探索ノード数。1手戻したところで加算。
+    pub node: i64,
+    // 現在探索中の深さ。
+    pub cur_depth: i16,
+}
+impl DisplayInformation {
+    pub fn new() -> DisplayInformation {
+        DisplayInformation {
+            node: 0,
+            cur_depth: 0,
+        }
+    }
+}
+
 /// 探索。
 /// 
 /// # Arguments.
@@ -78,17 +94,40 @@ pub struct CallbackCatalog<T> {
 ///
 /// 0. 最善手のハッシュ値。
 /// 1. 評価値。
-pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (u64, i16)
+pub fn start<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16) -> (u64, i16)
 {
+    let mut display_information = DisplayInformation::new();
+
+    search(t, callback_catalog, max_depth, cur_depth, min_alpha, beta, &mut display_information)
+}
+
+/// 探索。
+/// 
+/// # Arguments.
+///
+/// * `max_depth` - 潜りたい深さ。
+/// * `cur_depth` - 現在の深さ。末端が 0。
+/// * `min_alpha` - 最低評価値。これより低い評価値は無視する。
+/// * `beta` - 上限評価値。これより評価が高いなら探索を打ち切る。
+/// * `display_information` - 画面表示情報。
+///
+/// # Returns.
+///
+/// 0. 最善手のハッシュ値。
+/// 1. 評価値。
+fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth: i16, cur_depth: i16, min_alpha: i16, beta: i16, display_information: &mut DisplayInformation) -> (u64, i16)
+{
+    display_information.cur_depth = cur_depth;
+
     // 現局面の合法手を取得する。
     let (hashset_movement, quittance1) = (callback_catalog.pick_movements_callback)(t, max_depth, cur_depth);
     if quittance1 {
         // 指し手生成が中断された。探索をすみやかに安全に終了する。
-        return (TORYO_HASH, min_alpha);
+        return (RESIGN_HASH, min_alpha);
     }
 
 
-    let mut best_movement_hash = TORYO_HASH; // 手が無かったら投了
+    let mut best_movement_hash = RESIGN_HASH; // 手が無かったら投了
     let mut alpha = min_alpha; // ベスト評価値
     'idea: for next_movement_hash in hashset_movement.iter() {
 
@@ -98,11 +137,11 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
         let mut child_evaluation;
         if 0 == cur_depth-1 {
             // 葉。
-            child_evaluation = (callback_catalog.visit_leaf_callback)(t);
+            child_evaluation = (callback_catalog.visit_leaf_callback)(t, display_information);
 
         } else {
             // 子を探索へ。
-            let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha);
+            let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha, display_information);
             // 相手の評価値を逆さにする。
             child_evaluation = -opponent_evaluation;
 
@@ -119,6 +158,7 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
 
         // 1手戻す。
         (callback_catalog.unmakemove_callback)();
+        display_information.node += 1;
 
         if cutoff || quittance2 {
             // 指した駒を戻したところで、探索を打ち切る。
