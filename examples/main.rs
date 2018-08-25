@@ -5,87 +5,88 @@
 extern crate kifuwarabe_alpha_beta_search;
 
 use kifuwarabe_alpha_beta_search::*;
-use std::collections::HashSet;
+use example::*;
 
+mod example {
+    use kifuwarabe_alpha_beta_search::*;
+    use std::collections::HashSet;
 
-/// 任意の構造体を作成する。
-struct Searcher {
-    pub leaf_count: i32,
-    pub movemaker_count: i32,
-    pub moveunmaker_count: i32,
-    pub movepicker_count: i32,
-    pub comparer_count: i32,
-}
-impl Searcher {
-    fn new() -> Searcher {
-        Searcher {
-            leaf_count: 0,
-            movemaker_count: 0,
-            moveunmaker_count: 0,
-            movepicker_count: 0,
-            comparer_count: 0,
+    /// 任意の構造体を作成する。
+    pub struct Searcher {
+        pub leaf_count: i32,
+        pub movemaker_count: i32,
+        pub moveunmaker_count: i32,
+        pub movepicker_count: i32,
+        pub comparer_count: i32,
+    }
+    impl Searcher {
+        pub fn new() -> Searcher {
+            Searcher {
+                leaf_count: 0,
+                movemaker_count: 0,
+                moveunmaker_count: 0,
+                movepicker_count: 0,
+                comparer_count: 0,
+            }
         }
     }
+
+
+
+
+    pub fn visit_leaf_callback(searcher: &mut Searcher, display_information: &DisplayInformation) -> (i16)
+    {
+        searcher.leaf_count += 1;
+        println!("- 末端局面を評価する。 nodes: {}", display_information.nodes);
+        0
+    }
+
+    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64) {
+        searcher.movemaker_count += 1;
+        println!("- 1手指す。 hash: {}", movement_hash);
+    }
+
+    pub fn unmakemove_callback(searcher: &mut Searcher) {
+        searcher.moveunmaker_count += 1;
+        println!("- 1手戻す。");
+    }
+
+    /// # Returns.
+    ///
+    /// 1. 指し手のハッシュのセット。
+    /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
+    pub fn pick_movements_callback(searcher: &mut Searcher, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
+    {
+        searcher.movepicker_count += 1;
+        println!("- 選択肢を返す。");
+        let mut hashset = HashSet::<u64>::new();
+        hashset.insert(0);
+        hashset.insert(1);
+        hashset.insert(2);
+        (hashset, false)
+    }
+
+    /// 指し手の比較。
+    ///
+    /// # Arguments.
+    ///
+    /// * `best_movement_hash` - ベストな指し手のハッシュ値。
+    /// * `_alpha` - alpha。より良い手があれば増える。
+    /// * `_beta` - beta。
+    /// * `_movement` - 今回比較する指し手のハッシュ値。
+    /// * `_child_evaluation` - 今回比較する指し手の評価値。
+    ///
+    /// # Returns.
+    ///
+    /// 1. 探索を打ち切るなら真。（ベータカット）
+    /// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
+    pub fn compare_best_callback(searcher: &mut Searcher, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16) -> (bool, bool)
+    {
+        searcher.comparer_count += 1;
+        println!("- 手を比較し、より良い方を選ぶ。");
+        (false, false)
+    }
 }
-
-
-
-
-fn visit_leaf_callback(searcher: &mut Searcher, display_information: &DisplayInformation) -> (i16)
-{
-    searcher.leaf_count += 1;
-    println!("- 末端局面を評価する。 nodes: {}", display_information.nodes);
-    0
-}
-
-fn makemove_callback(searcher: &mut Searcher, movement_hash: u64) {
-    searcher.movemaker_count += 1;
-    println!("- 1手指す。 hash: {}", movement_hash);
-}
-
-fn unmakemove_callback(searcher: &mut Searcher) {
-    searcher.moveunmaker_count += 1;
-    println!("- 1手戻す。");
-}
-
-/// # Returns.
-///
-/// 1. 指し手のハッシュのセット。
-/// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-fn pick_movements_callback(searcher: &mut Searcher, _max_depth: i16, _cur_depth: i16) -> (HashSet<u64>, bool)
-{
-    searcher.movepicker_count += 1;
-    println!("- 選択肢を返す。");
-    let mut hashset = HashSet::<u64>::new();
-    hashset.insert(0);
-    hashset.insert(1);
-    hashset.insert(2);
-    (hashset, false)
-}
-
-/// 指し手の比較。
-///
-/// # Arguments.
-///
-/// * `best_movement_hash` - ベストな指し手のハッシュ値。
-/// * `_alpha` - alpha。より良い手があれば増える。
-/// * `_beta` - beta。
-/// * `_movement` - 今回比較する指し手のハッシュ値。
-/// * `_child_evaluation` - 今回比較する指し手の評価値。
-///
-/// # Returns.
-///
-/// 1. 探索を打ち切るなら真。（ベータカット）
-/// 2. 現在の探索を放棄し、すみやかに安全に終了するなら真。
-fn compare_best_callback(searcher: &mut Searcher, _best_movement_hash: &mut u64, _alpha: &mut i16, _beta: i16, _movement: u64, _child_evaluation: i16) -> (bool, bool)
-{
-    searcher.comparer_count += 1;
-    println!("- 手を比較し、より良い方を選ぶ。");
-    (false, false)
-}
-
-
-
 
 fn main() {
 
