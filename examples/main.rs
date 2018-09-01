@@ -42,9 +42,10 @@ mod example {
         0
     }
 
-    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64) {
+    pub fn makemove_callback(searcher: &mut Searcher, movement_hash: u64, _alpha: &mut i16) -> (bool) {
         searcher.movemaker_count += 1;
         println!("- 1手指す。 hash: {}", movement_hash);
+        false
     }
 
     pub fn unmakemove_callback(searcher: &mut Searcher) {

@@ -30,7 +30,12 @@ pub struct CallbackCatalog<T> {
     ///
     /// * `t` - 任意のオブジェクト。
     /// * `movement_hash` - 指し手のハッシュ値。
-    pub makemove_callback: fn(t: &mut T, movement_hash: u64),
+    /// * `alpha` - 評価値を更新することができる。
+    ///
+    /// # Returns.
+    ///
+    /// 0. cutoff - 探索を打ち切るなら真。玉を取る手など。
+    pub makemove_callback: fn(t: &mut T, movement_hash: u64, alpha: &mut i16) -> (bool),
 
     /// １手戻す。
     ///
@@ -112,29 +117,36 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
     let mut alpha = min_alpha; // ベスト評価値
     'idea: for next_movement_hash in hashset_movement.iter() {
 
-        // 1手指す。
-        (callback_catalog.makemove_callback)(t, *next_movement_hash);
-
-        let mut child_evaluation;
-        if 0 == cur_depth-1 {
-            // 葉。
-            child_evaluation = (callback_catalog.visit_leaf_callback)(t, display_information);
-
-        } else {
-            // 子を探索へ。
-            let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha, display_information);
-            // 相手の評価値を逆さにする。
-            child_evaluation = -opponent_evaluation;
-
-        }
-
-        // 比較して、一番良い手を選ぶ。
         let mut cutoff = false;
-        let (beta_cutoff, quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation);
-        if beta_cutoff
-        {
-            // 手を戻したあと、探索を打ち切る。
+        let mut quittance2 = false;
+
+        // 1手指す。
+        let makemove_cutoff = (callback_catalog.makemove_callback)(t, *next_movement_hash, &mut alpha);
+        if makemove_cutoff {
+            // TODO 玉を取るなどしたときの、探索の打ち切り。
             cutoff = true;
+        } else {
+            let mut child_evaluation;
+            if 0 == cur_depth-1 {
+                // 葉。
+                child_evaluation = (callback_catalog.visit_leaf_callback)(t, display_information);
+
+            } else {
+                // 子を探索へ。
+                let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha, display_information);
+                // 相手の評価値を逆さにする。
+                child_evaluation = -opponent_evaluation;
+
+            }
+
+            // 比較して、一番良い手を選ぶ。
+            let (beta_cutoff, child_quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation);
+            quittance2 = child_quittance2;
+            if beta_cutoff
+            {
+                // 手を戻したあと、探索を打ち切る。
+                cutoff = true;
+            }
         }
 
         // 1手戻す。
