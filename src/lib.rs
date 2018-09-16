@@ -5,6 +5,8 @@ use std::collections::HashSet;
 /// 投了。
 pub const RESIGN_HASH : u64 = 0;
 
+type CompareBestFn<T> = fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16) -> (bool, bool);
+
 /// コールバック関数を差し替えられる形にしたオブジェクト。
 ///
 /// # Generic types.
@@ -73,10 +75,11 @@ pub struct CallbackCatalog<T> {
     ///
     /// 1. 探索を打ち切るなら真。（ベータカット）
     /// 2. 探索をすみやかに安全に終了するなら真。
-    pub compare_best_callback: fn(t: &mut T, best_movement_hash: &mut u64, alpha: &mut i16, beta: i16, movement_hash: u64, evaluation: i16) -> (bool, bool),
+    pub compare_best_callback: CompareBestFn<T>,
 }
 
 /// 情報表示
+#[derive(Default)]
 pub struct DisplayInformation {
     // 探索ノード数。1手戻したところで加算。
     pub nodes: i64,
@@ -115,7 +118,7 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
 
     let mut best_movement_hash = RESIGN_HASH; // 手が無かったら投了
     let mut alpha = min_alpha; // ベスト評価値
-    'idea: for next_movement_hash in hashset_movement.iter() {
+    for next_movement_hash in &hashset_movement { // 'idea: 
 
         let mut cutoff = false;
         let mut quittance2 = false;
@@ -126,18 +129,15 @@ pub fn search<T>(t: &mut T, callback_catalog: &mut CallbackCatalog<T>, max_depth
             // TODO 玉を取るなどしたときの、探索の打ち切り。
             cutoff = true;
         } else {
-            let mut child_evaluation;
-            if 0 == cur_depth-1 {
+            let mut child_evaluation = if 0 == cur_depth-1 {
                 // 葉。
-                child_evaluation = (callback_catalog.visit_leaf_callback)(t, display_information);
-
+                (callback_catalog.visit_leaf_callback)(t, display_information)
             } else {
                 // 子を探索へ。
                 let (_child_movement_hash, opponent_evaluation) = search(t, callback_catalog, max_depth, cur_depth-1, -beta, -alpha, display_information);
                 // 相手の評価値を逆さにする。
-                child_evaluation = -opponent_evaluation;
-
-            }
+                -opponent_evaluation
+            };
 
             // 比較して、一番良い手を選ぶ。
             let (beta_cutoff, child_quittance2) = (callback_catalog.compare_best_callback)(t, &mut best_movement_hash, &mut alpha, beta, *next_movement_hash, child_evaluation);
